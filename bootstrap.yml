@@ -1,0 +1,44 @@
+---
+
+- hosts: all
+  become: true
+  pre_tasks:
+
+  - name: install updates (CentOS)
+    tags: always
+    dnf:
+     update_only: yes
+     update_cache: yes
+    when: ansible_distribution == "CentOS"
+
+  - name: install updates (Ubuntu)
+    tags: always
+    apt:
+     upgrade: dist
+     update_cache: yes
+    when: ansible_distribution == "Ubuntu"
+
+- hosts: all
+  become: true
+  tasks:
+
+  - name: create Lisa user
+    tags: always
+    user:
+     name: lisa8
+     groups: root
+
+  - name: add ssh key for Lisa8
+    tags: always
+    authorized_key:
+      user: lisa8
+      key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBjMCMxBsn25AuPYRpJZK8buFieCfbDApav0Ji6nGpnH ansible"
+
+  - name: add sudoers file for lisa8
+    tags: always
+    copy:
+     src: sudoer_lisa8
+     dest: /etc/sudoers.d/lisa8
+     owner: root
+     group: root
+     mode: 0440 

@@ -7,16 +7,26 @@
   - name: install updates (CentOS)
     tags: always
     dnf:
-     update_only: yes
      update_cache: yes
+    changed_when: false
     when: ansible_distribution == "CentOS"
 
   - name: install updates (Ubuntu)
     tags: always
     apt:
-     upgrade: dist
      update_cache: yes
+    changed_when: false 
     when: ansible_distribution == "Ubuntu"
+
+- hosts: all
+  become: true
+  tasks:
+
+  - name: add ssh key for Lisa8
+    tags: always
+    authorized_key:
+      user: lisa8
+      key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBjMCMxBsn25AuPYRpJZK8buFieCfbDApav0Ji6nGpnH ansible"
 
 - hosts: workstations
   become: true
@@ -35,6 +45,20 @@
       owner: root
       group: root
 
+  - name: download Raspian OS
+    get_url:
+      url: https://downloads.raspberrypi.org/raspios_arm64/images/raspios_arm64-2022-09-26/2022-09-22-raspios-bullseye-arm64.img.xz
+      dest: /home/rchapman8
+      mode: 0755
+      owner: root
+      group: root
+  - name: download Raspian Desktop
+    get_url:
+      url: https://downloads.raspberrypi.org/raspios_armhf/images/raspios_armhf-2022-09-26/2022-09-22-raspios-bullseye-armhf.img.xz
+      dest: /home/rchapman8
+      mode: 0755
+      owner: root
+      group: root
 
 - hosts: web_servers
   become: true
@@ -57,16 +81,40 @@
       - php
      state: latest
     when: ansible_distribution == "CentOS" 
-    
-  - name: copy default html file for site
-    tags: apache,apache2,httpd
-    copy:
-      src: second_site.html
-      dest: /var/www/html/index.html
-      owner: root
-      group: root
-      mode: 0644
+   
+  - name: start httpd (CentOS)
+    tags: apache,centos,httpd
+    service: 
+     name: httpd
+     state: started
+     enabled: yes
+    when: ansible_distribution == "CentOS"
 
+  - name: copy default html file for site
+    tags: apache,apache2,httpd,apache
+    copy:
+     src: ~/ansible_tutorial/files/default_site.html
+     dest: /var/www/html/index.html
+     owner: root
+     group: root
+     mode: 0644
+
+  - name: change e-mail address for admin
+    tags: apache,centos,httpd
+    lineinfile:
+     path: /etc/httpd/conf/httpd.conf
+     regexp: '^ServerAdmin'
+     line: ServerAdmin someone@somewhere.net
+    when: ansible_distribution == "CentOS"
+    register: httpd
+
+  - name: restart httpd (Centos)
+    tags: apache,centos,httpd
+    service:
+     name: httpd
+     state: restarted
+    when: httpd.changed
+    
 - hosts: db_servers
   become: true
   tasks:
