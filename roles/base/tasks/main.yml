@@ -1,0 +1,4 @@
+- name: add ssh key for lisa8 
+  authorized_key:
+    user: lisa8
+    key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBjMCMxBsn25AuPYRpJZK8buFieCfbDApav0Ji6nGpnH ansible"
